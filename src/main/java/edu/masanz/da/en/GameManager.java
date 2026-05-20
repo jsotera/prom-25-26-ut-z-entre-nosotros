@@ -1,20 +1,17 @@
 package edu.masanz.da.en;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class GameManager {
 
     private static final GameManager INSTANCE = new GameManager();
 
-    private boolean alarma = false;
-
     private Map<String, Sala> mapSalas =  new TreeMap<>();
     private Map<String, Jugador> mapJugadores =  new TreeMap<>();
     private Map<Sala, List<Jugador>> mapSalasListaJugadores =  new TreeMap<>();
     // MAPA QUIEN VOTA A QUIEN PARA MATAR
+    private Map<Jugador, Jugador> mapVotos = new TreeMap<>();
+    private EstadoJuego estadoJuego = EstadoJuego.JUGANDO;
 
     private String mapaTextual = """
 [cocina] - [pasillo] - [dormitorio]
@@ -93,6 +90,16 @@ public class GameManager {
         return jugador;
     }
 
+    public void removeJugador(String nombreJugador) {
+        Jugador jugador = mapJugadores.get(nombreJugador);
+        if(jugador == null){
+            return;
+        }
+        mapJugadores.remove(nombreJugador);
+        mapSalasListaJugadores.get(jugador.getSala()).remove(jugador);
+        mapVotos.remove(jugador);
+    }
+
     public boolean puedeIr(String clientName, String nombreSalaDestino) {
         // TODO
         return true;
@@ -147,17 +154,108 @@ public class GameManager {
         return true;
     }
 
-    public boolean alert(String nombreJugador) {
-        if(alarma){
+    public boolean alert() {
+        if(estadoJuego != EstadoJuego.JUGANDO){
             return false;
         }
-
-        alarma = true;
-        return alarma;
+        mapVotos.clear();
+        estadoJuego = EstadoJuego.REUNION;
+        return true;
     }
 
-    public Jugador vote(String nombreJugador, String nombreSospechoso) {
-        // TODO
-        return null;
+
+    public boolean vote(String nombreJugador, String nombreObjetivo) {
+        Jugador jugador = mapJugadores.get(nombreJugador);
+        Jugador objetivo = mapJugadores.get(nombreObjetivo);
+        if(jugador == null || objetivo == null){
+            return votacionFinalizada();
+        }
+        if(!jugador.isVivo() || !objetivo.isVivo()){
+            return votacionFinalizada();
+        }
+        mapVotos.put(jugador, objetivo);
+        return votacionFinalizada();
+    }
+
+    public boolean votacionFinalizada() {
+        for (Jugador jugador : mapJugadores.values()) {
+            if(jugador.isVivo() && !mapVotos.containsKey(jugador)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public Jugador resultadoVotacion() {
+
+        Map<Jugador, Integer> votosPorJugador = new HashMap<>();
+
+        for (Jugador objetivo : mapVotos.values()) {
+            Integer numVotos = votosPorJugador.get(objetivo);
+            if(numVotos==null){
+                numVotos = 0;
+            }
+            numVotos = numVotos + 1;
+            votosPorJugador.put(objetivo, numVotos);
+        }
+
+        Jugador jugadorConMasVotos = null;
+        int numVotosMax = 0;
+        for (Map.Entry<Jugador, Integer> entry : votosPorJugador.entrySet()) {
+            Jugador jugador = entry.getKey();
+            int votos = entry.getValue();
+            if(numVotosMax<votos){
+                jugadorConMasVotos = jugador;
+                numVotosMax = votos;
+            }
+        }
+        // TODO: implementar regla correcta de numero de votos necesarios
+        jugadorConMasVotos.setVivo(false);
+        actualizarEstadoJuego();
+        return jugadorConMasVotos;
+    }
+
+    public void actualizarEstadoJuego() {
+        if(estadoJuego != EstadoJuego.REUNION){
+            return;
+        }
+
+        if(estadoJuego == EstadoJuego.REUNION && !votacionFinalizada()){
+            return;
+        }
+
+        int numImpostores = 0;
+        int numNoImpostores = 0;
+        for (Jugador jugador : mapJugadores.values()) {
+            if(jugador.isVivo() && jugador.isImpostor()){
+                numImpostores++;
+            } else if(jugador.isVivo() && !jugador.isImpostor()){
+                numNoImpostores++;
+            }
+        }
+        if(numImpostores == 0){
+            estadoJuego = EstadoJuego.GANAN_TRIPULANTES;
+        } else if (numImpostores >= numNoImpostores) {
+            estadoJuego = EstadoJuego.GANAN_IMPOSTORES;
+        } else {
+            estadoJuego = EstadoJuego.JUGANDO;
+        }
+        if(estadoJuego == EstadoJuego.JUGANDO){
+            reubicarJugadores();
+        }
+    }
+
+    private void reubicarJugadores() {
+        for (Jugador jugador : mapJugadores.values()) {
+            mapSalasListaJugadores.get(jugador.getSala()).remove(jugador);
+            int i = (int) (Math.random() * mapSalas.size());
+            Sala sala = (new ArrayList<>(mapSalas.values())).get(i);
+            jugador.setSala(sala);
+            mapSalasListaJugadores.get(sala).add(jugador);
+        }
+    }
+
+    public EstadoJuego getEstadoJuego() {
+        return estadoJuego;
     }
 }

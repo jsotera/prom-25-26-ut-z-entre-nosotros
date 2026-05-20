@@ -1,6 +1,8 @@
 package edu.masanz.da.en;
 
-public class Jugador {
+import java.util.Objects;
+
+public class Jugador implements Comparable<Jugador> {
 
     private String nombre;
     private boolean impostor;
@@ -43,5 +45,23 @@ public class Jugador {
 
     public void setSala(Sala sala) {
         this.sala = sala;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Jugador jugador = (Jugador) o;
+        return Objects.equals(nombre, jugador.nombre);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nombre);
+    }
+
+
+    @Override
+    public int compareTo(Jugador other) {
+        return this.nombre.compareTo(other.nombre);
     }
 }

@@ -55,25 +55,14 @@ public class TxatClientHandler extends Thread {
                 par1 = message.split("\\s+")[1];
             }
             System.out.println("Comando: " + cmd);
+            EstadoJuego estadoJuego = GameManager.getInstance().getEstadoJuego();
             switch (cmd) {
-                case "KILL":
-                    kill(par1);
-                    break;
-                case "MOVE":
-                    move(par1);
-                    break;
-                case "MAPA":
-                    sendMapa();
-                    break;
-                case "PWD":
-                    whereAmI();
-                    break;
-                case "ALERT":
-                    alert();
-                    break;
-                case "VOTE":
-                    vote(par1);
-                    break;
+                case "KILL" -> {if(estadoJuego==EstadoJuego.JUGANDO) {kill(par1);};}
+                case "MOVE" -> {if(estadoJuego==EstadoJuego.JUGANDO) {move(par1);};}
+                case "MAPA" -> {if(estadoJuego==EstadoJuego.JUGANDO) {sendMapa();};}
+                case "PWD" -> {if(estadoJuego==EstadoJuego.JUGANDO) {whereAmI();};}
+                case "ALERT" -> {if(estadoJuego==EstadoJuego.JUGANDO) {alert();};}
+                case "VOTE" -> {if(estadoJuego==EstadoJuego.REUNION) {vote(par1);};}
             }
         } catch (Exception e) {
             out.println("MENSAJE MAL PROCESADO");
@@ -81,13 +70,25 @@ public class TxatClientHandler extends Thread {
     }
 
     private void vote(String nombreSospechoso) {
-        Jugador muerto = GameManager.getInstance().vote(clientName, nombreSospechoso);
+        boolean votacionFinalizada = GameManager.getInstance().vote(clientName, nombreSospechoso);
+        if(votacionFinalizada){
+            Jugador muerto = GameManager.getInstance().resultadoVotacion();
+            out.println(" MUERE... ["+muerto.getNombre()+"] y es un ["+(muerto.isImpostor() ? "IMPOSTOR" : "TRIPULANTE")+"]");
+            PrintWriter objetivoOut = mapaClientsWriters.get(muerto.getNombre());
+            objetivoOut.println("HAS SIDO ASESINADO.");
+            EstadoJuego estadoJuego = GameManager.getInstance().getEstadoJuego();
+            switch (estadoJuego){
+                case JUGANDO -> broadcast("SEGUIMOS JUGANDO");
+                case GANAN_IMPOSTORES -> broadcast("GANAN LOS IMPOSTORES");
+                case GANAN_TRIPULANTES -> broadcast("GANAN LOS TRIPULANTES");
+            }
+        }
     }
 
     private void alert() {
-        boolean exito = GameManager.getInstance().alert(clientName);
+        boolean exito = GameManager.getInstance().alert();
         if(exito) {
-            broadcast(" NIII NOOO NIII NOOO - ALERTA - REUNION - NIII NOOO NIII NOOO ");
+            broadcast(" - ALERTA - ["+clientName+"] Convoca una reunion - ALERTA");
         } else {
             out.println(" YA ESTAS EN ALERTA ");
         }
@@ -184,6 +185,13 @@ public class TxatClientHandler extends Thread {
             }
             System.out.println(clientName + " se ha desconectado.");
             broadcast(clientName + " se ha desconectado.");
+            GameManager.getInstance().removeJugador(clientName);
+            EstadoJuego estadoJuego = GameManager.getInstance().getEstadoJuego();
+            switch (estadoJuego){
+                case JUGANDO -> broadcast("SEGUIMOS JUGANDO");
+                case GANAN_IMPOSTORES -> broadcast("GANAN LOS IMPOSTORES");
+                case GANAN_TRIPULANTES -> broadcast("GANAN LOS TRIPULANTES");
+            }
         }
         try {
             socket.close();
