@@ -1,51 +1,60 @@
-# Txatrea
+# EntreNosotros - Un juego de engaño y chat
 
-Este es un proyecto de ejemplo para mostrar cómo crear un servicio de chat sencillo.
+Este proyecto es una adaptación del clásico juego "Among Us" a un formato de chat en tiempo real. Basado en la funcionalidad de la aplicación de chat "Txatrea", "EntreNosotros" introduce roles, objetivos y la emoción del engaño y la deducción a través de la comunicación textual.
 
-## v1
- 
-La primera versión tiene la parte de servidor y de cliente integrada en una misma clase.
-Al ejecutarse la clase TxatServerClient se solicita el rol con el que se desea iniciar.
+## Funcionamiento del Juego
 
-### Servidor
+La partida se desarrolla en una "nave" virtual gestionada por el servidor. Los jugadores se conectan y se les asigna un rol en secreto. La comunicación es la clave para descubrir a los impostores o, si eres uno de ellos, para engañar a los demás.
 
-El servidor escucha en un puerto y acepta conexiones de clientes que gestiona en hilos de tipo ClientHandler.
-En clientWriters se guardan los PrintWriter de cada cliente conectado para poder enviar mensajes a todos los clientes.
-En cada hilo de gestión de cliente en el servidor se lee el mensaje enviado por el cliente y se retransmite a todos los clientes conectados utilizando clientWriters.
+### Roles
 
-### Cliente
+-   **Tripulantes:** Su objetivo es sobrevivir y descubrir a los impostores. Deben comunicarse y colaborar para identificar a los culpables y expulsarlos de la nave mediante votación.
+-   **Impostores:** Su objetivo es eliminar a los tripulantes sin ser descubiertos hasta que su número sea igual al de los tripulantes. Deben mezclarse, fingir inocencia y usar la astucia para acusar a otros.
 
-Cada cliente puede enviar mensajes que se retransmiten a todos los demás clientes conectados.
-En cada cliente se crean tres flujos: uno para leer desde el servidor (in), otro para escribir al servidor(out) y otro para leer desde la consola (userInput).
-Inicialmente se recoge el nombre del cliente en una variable local llamada username.
-A continuación, se inicia un hilo que lee los mensajes del servidor y los muestra por consola.
-Finalmente, en el hilo principal se lee la entrada del usuario y se envía al servidor en un bucle "infinito".
+### Fases del Juego
 
-## v2
+El juego se divide en dos fases principales que se alternan:
 
-En esta versión se ha separado la parte de servidor y cliente en dos clases diferentes: TxatServer y TxatClient.
-La clase TxatClientHandler también se ha separado en una clase independiente para gestionar cada cliente conectado al servidor.
-La clase TxatServer y TxatClientHandler comparten la lista de PrintWriter de los clientes conectados para poder enviar mensajes a todos los clientes.
+**1. Fase de Chat Libre:**
+-   Todos los jugadores pueden hablar en un canal de chat general.
+-   Los impostores pueden enviar un comando especial al servidor para "eliminar" a un tripulante. Esta acción es secreta y solo el impostor y el servidor la conocen en el momento.
+-   Los tripulantes deben estar atentos a quién habla, quién no, y a posibles silencios sospechosos.
 
-## v3
+**2. Fase de Discusión y Votación:**
+-   Esta fase se activa cuando un jugador "reporta" haber encontrado a un jugador eliminado o convoca una "reunión de emergencia" mediante un comando.
+-   El chat general se pausa y se abre un canal de chat específico para la discusión.
+-   Los jugadores debaten sobre quién puede ser el impostor.
+-   Al final de un tiempo determinado, se inicia una votación. Cada jugador emite un voto por el jugador que cree que es el culpable.
+-   El jugador con más votos es "expulsado" de la nave. El servidor revela si era o no un impostor.
 
-En esta versión se utiliza un mapa de clientes conectados en el servidor, donde la clave es el nombre del cliente y el valor es su PrintWriter. 
-Esto puede permitir enviar mensajes a clientes específicos en lugar de a todos los clientes conectados (sin implementar todavía).
-Cambia la clase TxatClient y TxatClientHandler para que el cliente envíe su nombre al servidor al conectarse, y el servidor lo almacene en el mapa de clientes conectados.
-Si el nombre del cliente ya existe en el mapa, el servidor envia un mensaje de rechazo al cliente para que este pruebe con otro nombre.
+### Condiciones de Victoria
 
-## v4
+-   **Ganan los Tripulantes si...**
+    -   Logran expulsar a todos los impostores.
 
-Si un cliente escribe la palabra "BYE" saldrá del cliente y se cerrará la conexión con el servidor. El servidor eliminará al cliente del mapa de clientes conectados y notificará a los demás clientes que el cliente se ha desconectado.
+-   **Ganan los Impostores si...**
+    -   El número de impostores es igual al número de tripulantes restantes.
 
-## v5
+## Comandos del Juego
 
-Si un cliente escribe la palabra "WHO" el servidor enviará al cliente una lista de los nombres de los clientes conectados actualmente. El cliente muestra esta lista por consola.
+Los siguientes comandos están disponibles para los jugadores:
 
-## v6
+-   `/KILL <nombre_jugador>`: (Solo impostores) Intenta eliminar a un tripulante en la misma sala.
+-   `/MOVE <nombre_sala>`: Permite al jugador moverse entre las salas de la nave.
+-   `/MAPA`: Muestra un mapa con la distribución de las salas.
+-   `/PWD`: Muestra la sala en la que te encuentras y los jugadores presentes.
+-   `/ALERT`: Convoca una reunión de emergencia para iniciar una fase de discusión y votación.
+-   `/VOTE <nombre_jugador>`: Emite un voto para expulsar a un jugador durante una reunión.
 
-Se implementa una interfaz gráfica de usuario (GUI) para el cliente utilizando JavaFX. 
+## Base Tecnológica
 
-## v7
+El sistema de comunicación y la estructura cliente-servidor se basan en el proyecto **"Txatrea"**, extendiendo su funcionalidad para soportar la lógica del juego, la gestión de roles, los comandos especiales y los diferentes estados de la partida (chat libre, discusión, votación).
 
-Se notifica al cliente cuando un cliente se conecta o desconecta del servidor.
+## TODO - Tareas Pendientes
+
+-   [ ] Implementar un sistema de "cooldown" para el comando `/KILL` para evitar asesinatos consecutivos.
+-   [ ] Limitar el número de reuniones de emergencia que se pueden convocar por partida.
+-   [ ] Añadir un sistema de tareas para los tripulantes.
+-   [ ] Mejorar la visualización del mapa y la información de los jugadores.
+-   [ ] Implementar un sistema de "fantasmas" para los jugadores eliminados, que puedan observar la partida sin participar.
+-   [ ] Refinar el sistema de votación para gestionar empates y votos nulos.
