@@ -321,21 +321,29 @@ public class GameManager {
 
     public void setJugadorReady(String clientName) {
         mapJugadores.get(clientName).setReady(true); // Opción 1
-        mapJugadorReady.put(mapJugadores.get(clientName), true); // Opción 2
         // Comprobar si todos están READY
-        // Opción 1
         for (Jugador jugador : mapJugadores.values()) {
             if (!jugador.isReady()) {
                 return;
             }
         }
         estadoJuego = EstadoJuego.JUGANDO;
-        // Opción 2
-        if (mapJugadorReady.size() == mapJugadores.size()) {
-            estadoJuego = EstadoJuego.JUGANDO;
-        }
         // Definir intrusos
         int numImpostores = (int) Math.ceil(mapJugadores.size() * 0.2);
         // TODO: setJugadorReady
+        List<Jugador> jugadores = new ArrayList<>();
+        jugadores.addAll(mapJugadores.values());
+        Collections.shuffle(jugadores);
+        for (int i = 0; i < numImpostores; i++) {
+            jugadores.get(i).setImpostor(true);
+        }
+    }
+
+    public boolean esImpostor(String nombreJugador) {
+        Jugador jugador = mapJugadores.get(nombreJugador);
+        if(jugador == null){
+            return false;
+        }
+        return jugador.isImpostor();
     }
 }

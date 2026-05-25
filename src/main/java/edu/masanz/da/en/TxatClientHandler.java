@@ -60,19 +60,30 @@ public class TxatClientHandler extends Thread {
             }
             System.out.println("Comando: " + cmd);
             EstadoJuego estadoJuego = GameManager.getInstance().getEstadoJuego();
-            switch (cmd) {
-                case "KILL" -> {if(estadoJuego==EstadoJuego.JUGANDO) {kill(par1);} }
-                case "MOVE" -> {if(estadoJuego==EstadoJuego.JUGANDO || estadoJuego==EstadoJuego.ESPERANDO) {move(par1);} }
-                case "MAPA" -> {if(estadoJuego==EstadoJuego.JUGANDO || estadoJuego==EstadoJuego.ESPERANDO) {sendMapa();} }
-                //case "PWD" -> {if(estadoJuego==EstadoJuego.JUGANDO) {whereAmI();} }
-                case "PWD" -> descMyPlace();
-                case "ALERT" -> {if(estadoJuego==EstadoJuego.JUGANDO) {alert();} }
-                case "VOTE" -> {if(estadoJuego==EstadoJuego.REUNION) {vote(par1);} }
-                case "ALIVE" -> sendPeopleAlive();
-                case "FIX" -> {if(estadoJuego==EstadoJuego.JUGANDO) {arreglaTarea(par1);} }
-                case "DESTROY" -> {if(estadoJuego==EstadoJuego.JUGANDO) {destrozaTarea(par1);} }
-                case "READY" -> {if(estadoJuego==EstadoJuego.ESPERANDO) {manageReadiness();} }
-                case "HELP" -> sendCommandsList();
+            if(cmd.equalsIgnoreCase("KILL") && estadoJuego==EstadoJuego.JUGANDO){
+                kill(par1);
+            } else if (cmd.equalsIgnoreCase("MOVE") && (estadoJuego==EstadoJuego.JUGANDO || estadoJuego==EstadoJuego.ESPERANDO)) {
+                move(par1);
+            } else if (cmd.equalsIgnoreCase("MAPA") && (estadoJuego==EstadoJuego.JUGANDO || estadoJuego==EstadoJuego.ESPERANDO)) {
+                sendMapa();
+            } else if (cmd.equalsIgnoreCase("PWD")) {
+                descMyPlace();
+            } else if (cmd.equalsIgnoreCase("ALERT") && estadoJuego==EstadoJuego.JUGANDO) {
+                alert();
+            } else if (cmd.equalsIgnoreCase("VOTE") && estadoJuego==EstadoJuego.REUNION) {
+                vote(par1);
+            } else if (cmd.equalsIgnoreCase("ALIVE")) {
+                sendPeopleAlive();
+            } else if (cmd.equalsIgnoreCase("FIX") && estadoJuego==EstadoJuego.JUGANDO) {
+                arreglaTarea(par1);
+            } else if (cmd.equalsIgnoreCase("DESTROY") && estadoJuego==EstadoJuego.JUGANDO) {
+                destrozaTarea(par1);
+            } else if (cmd.equalsIgnoreCase("READY") && estadoJuego==EstadoJuego.ESPERANDO) {
+                manageReadiness();
+            } else if (cmd.equalsIgnoreCase("HELP")) {
+                sendCommandsList();
+            } else {
+                out.println("AHORA MISMO NO PUEDES EJECUTAR ESA ACCION.");
             }
         } catch (Exception e) {
             out.println("MENSAJE MAL PROCESADO");
@@ -88,16 +99,23 @@ public class TxatClientHandler extends Thread {
             // TODO manageReadiness
 
             // utilizaré mapaClientsWriters para informar
-
-            // Al GM pedirle lista impostores y lista tripulantes
-//            List<String> listaTripulantes =
-
-            //  lista tripulantes -> informar a tripulantes que son tripulantes
-
+            List<String> impostores = new ArrayList<>();
+            for (Map.Entry<String, PrintWriter> entry : mapaClientsWriters.entrySet()) {
+                String nombreJugador = entry.getKey();
+                PrintWriter outJugador = entry.getValue();
+                boolean esImpostor = GameManager.getInstance().esImpostor(nombreJugador);
+                outJugador.println("ERES UN ["+(esImpostor ? "IMPOSTOR" : "TRIPULANTE")+"]");
+                if(esImpostor){
+                    impostores.add(nombreJugador);
+                }
+            }
             // informar impostores quienes son los impostores
-
+            for (String impostor : impostores) {
+                PrintWriter outJugador = mapaClientsWriters.get(impostor);
+                outJugador.println("LOS IMPOSTORES DEL JUEGO SON: "+impostores);
+            }
             // broadcast COMIENZA EL JUEGO
-
+            broadcast("COMIENZA EL JUEGO");
         }else {
             out.println("ESPERANDO AL RESTO");
         }
@@ -143,9 +161,9 @@ public class TxatClientHandler extends Thread {
         // TODO: sendPeopleAlive Si estas ESPERANDO mandar una lista de quienes están READY o NO
         // Por ejemplo con un asterísco entre paréntesis los que están listos
 
-        out.println("*".repeat(59));
-        out.printf("* %8s%-10s%8s * %8s%-10s%8s *\n"," ", "VIVOS", " "," ", "MUERTOS", " ");
-        out.println("*".repeat(59));
+        out.println("*".repeat(51));
+        out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n"," ", "VIVOS", " "," ", "MUERTOS", " ");
+        out.println("*".repeat(51));
         for (int i = 0; i < n; i++) {
             String vivo = "";
             String muerto = "";
@@ -154,10 +172,12 @@ public class TxatClientHandler extends Thread {
             }catch (Exception e){}
             try {
                 muerto = listaMuertos.get(i);
-            }catch (Exception e){}
-            out.printf("* %8s%-10s%8s * %8s%-10s%8s *\n"," ", vivo, " "," ", muerto, " ");
+            }catch (Exception e){
+
+            }
+            out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n"," ", vivo, " "," ", muerto, " ");
         }
-        out.println("*".repeat(59));
+        out.println("*".repeat(51));
     }
 
     private void vote(String nombreSospechoso) {
@@ -247,7 +267,7 @@ public class TxatClientHandler extends Thread {
                     out.println("OK");
                     broadcast(clientName + " se ha conectado.");
 
-//                    Jugador yo = GameManager.getInstance().addJugador(clientName);
+                    Jugador yo = GameManager.getInstance().addJugador(clientName);
 //                    out.println("ERES UN ["+(yo.isImpostor() ? "IMPOSTOR" : "TRIPULANTE")+"]");
                     out.println("Cuando estes listo, escribe /READY también puedes saber quién está con /ALIVE");
                 } else {
