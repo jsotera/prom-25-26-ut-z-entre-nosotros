@@ -9,12 +9,9 @@ public class GameManager {
     private Map<String, Sala> mapSalas =  new TreeMap<>();
     private Map<String, Jugador> mapJugadores =  new TreeMap<>();
     private Map<Sala, List<Jugador>> mapSalasListaJugadores =  new TreeMap<>();
-    private Map<Sala, List<Tarea>> mapSalasListaTareas =  new TreeMap<>();
-
+    // MAPA QUIEN VOTA A QUIEN PARA MATAR
     private Map<Jugador, Jugador> mapVotos = new TreeMap<>();
-    private EstadoJuego estadoJuego = EstadoJuego.ESPERANDO;
-
-    private Map<Jugador, Boolean> mapJugadorReady = new TreeMap<>();
+    private EstadoJuego estadoJuego = EstadoJuego.JUGANDO;
 
     private String mapaTextual = """
 [cocina] - [pasillo] - [dormitorio]
@@ -25,19 +22,6 @@ public class GameManager {
     private GameManager() {
         initMapSalas();
         initMapSalasListaJugadores();
-        initMapSalasListaTareas();
-    }
-
-    private void initMapSalasListaTareas() {
-        mapSalasListaTareas.put(mapSalas.get("cocina"), new ArrayList<>());
-        mapSalasListaTareas.put(mapSalas.get("pasillo"), new ArrayList<>());
-        mapSalasListaTareas.put(mapSalas.get("dormitorio"), new ArrayList<>());
-        mapSalasListaTareas.put(mapSalas.get("despensa"), new ArrayList<>());
-
-        mapSalasListaTareas.get(mapSalas.get("cocina")).add(new Tarea("cafetera"));
-        mapSalasListaTareas.get(mapSalas.get("despensa")).add(new Tarea("oxígeno"));
-        mapSalasListaTareas.get(mapSalas.get("dormitorio")).add(new Tarea("calefacción"));
-        mapSalasListaTareas.get(mapSalas.get("dormitorio")).add(new Tarea("trituradora"));
     }
 
     private void initMapSalas() {
@@ -85,10 +69,10 @@ public class GameManager {
     public Jugador addJugador(String clientName) {
 
         Jugador jugador = new Jugador(clientName);
-//
-//        if (Math.random() < 0.3) {
-//            jugador.setImpostor(true);
-//        }
+
+        if (Math.random() < 0.3) {
+            jugador.setImpostor(true);
+        }
 
         // Meterlo en el mapa jugadores
         mapJugadores.put(clientName, jugador);
@@ -151,10 +135,6 @@ public class GameManager {
         return mapSalasListaJugadores;
     }
 
-    public Map<Sala, List<Tarea>> getMapSalasListaTareas() {
-        return mapSalasListaTareas;
-    }
-
     public boolean kill(String nombreAsesino, String nombreObjetivo) {
         Jugador asesino = mapJugadores.get(nombreAsesino);
         Jugador objetivo = mapJugadores.get(nombreObjetivo);
@@ -174,30 +154,6 @@ public class GameManager {
         return true;
     }
 
-    public boolean arreglaTarea(String nombreJugador, String nombreTarea) {
-        Jugador jugador = mapJugadores.get(nombreJugador);
-        if(jugador == null || nombreTarea == null || nombreTarea.isEmpty()){
-            return false;
-        }
-        if(!jugador.isVivo() || jugador.isImpostor()){
-            return false;
-        }
-        List<Tarea> listaTareas = mapSalasListaTareas.get(jugador.getSala());
-        if(listaTareas == null || listaTareas.isEmpty()){
-            return false;
-        }
-        for (Tarea tarea : listaTareas) {
-            if(tarea.getNombre().equalsIgnoreCase(nombreTarea)){
-                if(tarea.isFunciona()){
-                    return false;
-                }
-                tarea.setFunciona(true);
-                return true;
-            }
-        }
-        return false;
-    }
-
     public boolean alert() {
         if(estadoJuego != EstadoJuego.JUGANDO){
             return false;
@@ -211,14 +167,14 @@ public class GameManager {
     public boolean vote(String nombreJugador, String nombreObjetivo) {
         Jugador jugador = mapJugadores.get(nombreJugador);
         Jugador objetivo = mapJugadores.get(nombreObjetivo);
-        if (jugador == null || objetivo == null){
-            return false;
+        if(jugador == null || objetivo == null){
+            return votacionFinalizada();
         }
         if(!jugador.isVivo() || !objetivo.isVivo()){
-            return false;
+            return votacionFinalizada();
         }
         mapVotos.put(jugador, objetivo);
-        return true;
+        return votacionFinalizada();
     }
 
     public boolean votacionFinalizada() {
@@ -301,41 +257,5 @@ public class GameManager {
 
     public EstadoJuego getEstadoJuego() {
         return estadoJuego;
-    }
-
-    public List<Jugador> getJugadores() {
-        return new ArrayList<>(mapJugadores.values());
-    }
-
-    public void killJugador(String nombreJugador) {
-        mapJugadores.get(nombreJugador).setVivo(false);
-    }
-
-    public List<Tarea> getTareasDeSala(Sala sala) {
-        return mapSalasListaTareas.get(sala);
-    }
-
-    public List<Jugador> getJugadores(Sala sala) {
-        return mapSalasListaJugadores.get(sala);
-    }
-
-    public void setJugadorReady(String clientName) {
-        mapJugadores.get(clientName).setReady(true); // Opción 1
-        mapJugadorReady.put(mapJugadores.get(clientName), true); // Opción 2
-        // Comprobar si todos están READY
-        // Opción 1
-        for (Jugador jugador : mapJugadores.values()) {
-            if (!jugador.isReady()) {
-                return;
-            }
-        }
-        estadoJuego = EstadoJuego.JUGANDO;
-        // Opción 2
-        if (mapJugadorReady.size() == mapJugadores.size()) {
-            estadoJuego = EstadoJuego.JUGANDO;
-        }
-        // Definir intrusos
-        int numImpostores = (int) Math.ceil(mapJugadores.size() * 0.2);
-        // TODO: setJugadorReady
     }
 }

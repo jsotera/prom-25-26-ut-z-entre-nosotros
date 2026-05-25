@@ -8,6 +8,7 @@ public class Jugador implements Comparable<Jugador> {
     private boolean impostor;
     private boolean vivo;
     private Sala sala;
+    private boolean ready;
 
     public Jugador(String nombre) {
         this.nombre = nombre;
@@ -63,5 +64,13 @@ public class Jugador implements Comparable<Jugador> {
     @Override
     public int compareTo(Jugador other) {
         return this.nombre.compareTo(other.nombre);
+    }
+
+    public void setReady(boolean b) {
+        this.ready = b;
+    }
+
+    public boolean isReady() {
+        return ready;
     }
 }
