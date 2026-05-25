@@ -145,10 +145,17 @@ public class TxatClientHandler extends Thread {
     private void sendPeopleAlive() {
         List<Jugador> listaJugadores = GameManager.getInstance().getJugadores();
 
+        List<String> listaReady = new ArrayList<>();
+        List<String> listaNoReady = new ArrayList<>();
         List<String> listaVivos = new ArrayList<>();
         List<String> listaMuertos = new ArrayList<>();
 
         for (Jugador jugador : listaJugadores) {
+            if (jugador.isReady()) {
+                listaReady.add(jugador.getNombre());
+            } else {
+                listaNoReady.add(jugador.getNombre());
+            }
             if(jugador.isVivo()){
                 listaVivos.add(jugador.getNombre());
             } else {
@@ -157,27 +164,46 @@ public class TxatClientHandler extends Thread {
         }
 
         int n = Math.max(listaVivos.size(), listaMuertos.size());
+        int z = Math.max(listaReady.size(), listaNoReady.size());
 
         // TODO: sendPeopleAlive Si estas ESPERANDO mandar una lista de quienes están READY o NO
-        // Por ejemplo con un asterísco entre paréntesis los que están listos
-
-        out.println("*".repeat(51));
-        out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n"," ", "VIVOS", " "," ", "MUERTOS", " ");
-        out.println("*".repeat(51));
-        for (int i = 0; i < n; i++) {
-            String vivo = "";
-            String muerto = "";
-            try {
-                vivo = listaVivos.get(i);
-            }catch (Exception e){}
-            try {
-                muerto = listaMuertos.get(i);
-            }catch (Exception e){
-
+        if (GameManager.getInstance().getEstadoJuego() == EstadoJuego.ESPERANDO) {
+            out.println("*".repeat(51));
+            out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n", " ", "READY", " ", " ", "NO READY", " ");
+            out.println("*".repeat(51));
+            for (int i = 0; i < z; i++) {
+                String ready = "";
+                String noReady = "";
+                try {
+                    ready = listaReady.get(i);
+                } catch (Exception e) {
+                }
+                try {
+                    noReady = listaNoReady.get(i);
+                } catch (Exception e) {
+                }
+                out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n", " ", ready, " ", " ", noReady, " ");
             }
-            out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n"," ", vivo, " "," ", muerto, " ");
+            out.println("*".repeat(51));
+        } else {
+            out.println("*".repeat(51));
+            out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n"," ", "VIVOS", " "," ", "MUERTOS", " ");
+            out.println("*".repeat(51));
+            for (int i = 0; i < n; i++) {
+                String vivo = "";
+                String muerto = "";
+                try {
+                    vivo = listaVivos.get(i);
+                }catch (Exception e){}
+                try {
+                    muerto = listaMuertos.get(i);
+                }catch (Exception e){
+
+                }
+                out.printf("*%5s%-14s%5s*%5s%-14s%5s*\n"," ", vivo, " "," ", muerto, " ");
+            }
+            out.println("*".repeat(51));
         }
-        out.println("*".repeat(51));
     }
 
     private void vote(String nombreSospechoso) {
